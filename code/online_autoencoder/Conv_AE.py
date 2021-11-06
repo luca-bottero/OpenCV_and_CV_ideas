@@ -3,45 +3,56 @@ import keras
 from keras import layers
 import matplotlib.pyplot as plt
 import visualkeras
+import numpy as np
 
 #%%
 
-def Create_AE():
+class AE_model():
+    def __init__(self):
+        self.Create_AE()
+        
+    def Create_AE(self):
+        input_img = keras.Input(shape=(28, 28, 1))
 
-    input_img = keras.Input(shape=(28, 28, 1))
+        x = layers.Conv2D(16, (3, 3), activation='relu', padding='same')(input_img)
+        x = layers.MaxPooling2D((2, 2), padding='same')(x)
+        x = layers.Conv2D(8, (3, 3), activation='relu', padding='same')(x)
+        x = layers.MaxPooling2D((2, 2), padding='same')(x)
+        x = layers.Conv2D(8, (3, 3), activation='relu', padding='same')(x)
+        encoded = layers.MaxPooling2D((2, 2), padding='same')(x)
 
-    x = layers.Conv2D(16, (3, 3), activation='relu', padding='same')(input_img)
-    x = layers.MaxPooling2D((2, 2), padding='same')(x)
-    x = layers.Conv2D(8, (3, 3), activation='relu', padding='same')(x)
-    x = layers.MaxPooling2D((2, 2), padding='same')(x)
-    x = layers.Conv2D(8, (3, 3), activation='relu', padding='same')(x)
-    encoded = layers.MaxPooling2D((2, 2), padding='same')(x)
+        # at this point the representation is (4, 4, 8) i.e. 128-dimensional
 
-    # at this point the representation is (4, 4, 8) i.e. 128-dimensional
+        x = layers.Conv2D(8, (3, 3), activation='relu', padding='same')(encoded)
+        x = layers.UpSampling2D((2, 2))(x)
+        x = layers.Conv2D(8, (3, 3), activation='relu', padding='same')(x)
+        x = layers.UpSampling2D((2, 2))(x)
+        x = layers.Conv2D(16, (3, 3), activation='relu')(x)
+        x = layers.UpSampling2D((2, 2))(x)
+        decoded = layers.Conv2D(1, (3, 3), activation='sigmoid', padding='same')(x)
 
-    x = layers.Conv2D(8, (3, 3), activation='relu', padding='same')(encoded)
-    x = layers.UpSampling2D((2, 2))(x)
-    x = layers.Conv2D(8, (3, 3), activation='relu', padding='same')(x)
-    x = layers.UpSampling2D((2, 2))(x)
-    x = layers.Conv2D(16, (3, 3), activation='relu')(x)
-    x = layers.UpSampling2D((2, 2))(x)
-    decoded = layers.Conv2D(1, (3, 3), activation='sigmoid', padding='same')(x)
+        self.model = keras.Model(input_img, decoded)
+        self.model.compile(optimizer='adam', loss='binary_crossentropy')
 
-    autoencoder = keras.Model(input_img, decoded)
-    autoencoder.compile(optimizer='adam', loss='binary_crossentropy')
+        return self.model
 
-    return autoencoder
+    def prepare_data(self, input):
+        self.input = np.reshape(input.astype('float32'), (len(input.astype('float32')), 28, 28, 1))
 
-#%%
+    def train_predict(self, input):
+        self.prepare_data(input)
 
-model = Create_AE()
+        self.model.fit(self.input, self.input, epochs = 1)
+        self.output = self.model.predict(self.input)
+
+    def plot_layered_view(self):
+        visualkeras.layered_view(self.model, legend = True)
 
 
-visualkeras.layered_view(model, legend = True)
 
 
 # %%
-
+'''
 from keras.datasets import mnist
 import numpy as np
 
@@ -72,7 +83,7 @@ for i in range(5):
     plt.imshow(x_train[i])
     plt.show()
     plt.imshow(pred[i].reshape(28,28))
-    plt.show()
+    plt.show()'''
 
 
 # %%
