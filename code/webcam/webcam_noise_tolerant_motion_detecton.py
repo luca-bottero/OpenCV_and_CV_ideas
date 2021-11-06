@@ -77,7 +77,7 @@ def main(width=640, height=480, scale_factor=2):
     fg_frames = deque(maxlen=10)
 
     # Get the webcam
-    cap = cv2.VideoCapture(2)
+    cap = cv2.VideoCapture(0)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
 
