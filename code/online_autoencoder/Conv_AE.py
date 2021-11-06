@@ -12,38 +12,46 @@ class AE_model():
         self.Create_AE()
         
     def Create_AE(self):
-        input_img = keras.Input(shape=(28, 28, 1))
+        input_img = keras.Input(shape=(28, 28, 3))
 
-        x = layers.Conv2D(16, (3, 3), activation='relu', padding='same')(input_img)
+        x = layers.Conv2D(32, (3, 3), activation='relu', padding='same')(input_img)
         x = layers.MaxPooling2D((2, 2), padding='same')(x)
-        x = layers.Conv2D(8, (3, 3), activation='relu', padding='same')(x)
+        x = layers.Conv2D(16, (3, 3), activation='relu', padding='same')(x)
         x = layers.MaxPooling2D((2, 2), padding='same')(x)
-        x = layers.Conv2D(8, (3, 3), activation='relu', padding='same')(x)
+        x = layers.Conv2D(16, (3, 3), activation='relu', padding='same')(x)
         encoded = layers.MaxPooling2D((2, 2), padding='same')(x)
 
         # at this point the representation is (4, 4, 8) i.e. 128-dimensional
-
-        x = layers.Conv2D(8, (3, 3), activation='relu', padding='same')(encoded)
+  
+        x = layers.Conv2D(16, (3, 3), activation='relu', padding='same')(encoded)
         x = layers.UpSampling2D((2, 2))(x)
-        x = layers.Conv2D(8, (3, 3), activation='relu', padding='same')(x)
+        x = layers.Conv2D(16, (3, 3), activation='relu', padding='same')(x)
         x = layers.UpSampling2D((2, 2))(x)
-        x = layers.Conv2D(16, (3, 3), activation='relu')(x)
+        x = layers.Conv2D(32, (3, 3), activation='relu')(x)
         x = layers.UpSampling2D((2, 2))(x)
-        decoded = layers.Conv2D(1, (3, 3), activation='sigmoid', padding='same')(x)
+        decoded = layers.Conv2D(3, (3, 3), activation='sigmoid', padding='same')(x)
 
         self.model = keras.Model(input_img, decoded)
-        self.model.compile(optimizer='adam', loss='binary_crossentropy')
+        #self.model.compile(optimizer=keras.optimizers.Adam(1e-4), loss = 'mse')
+        self.model.compile(optimizer=keras.optimizers.SGD(1e-7, momentum=1e-8), loss = 'mse')
+
 
         return self.model
 
     def prepare_data(self, input):
-        self.input = np.reshape(input.astype('float32'), (len(input.astype('float32')), 28, 28, 1))
+        self.input = np.reshape(input.astype('float32'), (1,28, 28, 3))
 
     def train_predict(self, input):
         self.prepare_data(input)
 
         self.model.fit(self.input, self.input, epochs = 1)
         self.output = self.model.predict(self.input)
+
+        self.output = np.abs(self.output)
+        self.output *= np.round((255.0/self.output.max()))
+        self.output = np.squeeze(self.output, axis = 0)
+
+        return self.output
 
     def plot_layered_view(self):
         visualkeras.layered_view(self.model, legend = True)
