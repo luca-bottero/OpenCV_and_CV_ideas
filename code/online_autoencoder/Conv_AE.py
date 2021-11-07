@@ -8,38 +8,41 @@ import numpy as np
 #%%
 
 class AE_model():
-    def __init__(self):
+    def __init__(self, img_shape = (28,28,3)):
+        self.img_shape = img_shape
+
         self.Create_AE()
         
     def Create_AE(self):
-        input_img = keras.Input(shape=(28, 28, 3))
+        input_img = keras.Input(shape = self.img_shape)
 
-        x = layers.Conv2D(32, (3, 3), activation='relu', padding='same')(input_img)
+        x = layers.Conv2D(64, (3, 3), activation='relu', padding='same')(input_img)
         x = layers.MaxPooling2D((2, 2), padding='same')(x)
-        x = layers.Conv2D(16, (3, 3), activation='relu', padding='same')(x)
+        x = layers.Conv2D(32, (3, 3), activation='relu', padding='same')(x)
         x = layers.MaxPooling2D((2, 2), padding='same')(x)
-        x = layers.Conv2D(16, (3, 3), activation='relu', padding='same')(x)
+        x = layers.Conv2D(32, (3, 3), activation='relu', padding='same')(x)
         encoded = layers.MaxPooling2D((2, 2), padding='same')(x)
 
         # at this point the representation is (4, 4, 8) i.e. 128-dimensional
   
-        x = layers.Conv2D(16, (3, 3), activation='relu', padding='same')(encoded)
+        x = layers.Conv2D(32, (3, 3), activation='relu', padding='same')(encoded)
         x = layers.UpSampling2D((2, 2))(x)
-        x = layers.Conv2D(16, (3, 3), activation='relu', padding='same')(x)
+        x = layers.Conv2D(32, (3, 3), activation='relu', padding='same')(x)
         x = layers.UpSampling2D((2, 2))(x)
-        x = layers.Conv2D(32, (3, 3), activation='relu')(x)
+        x = layers.Conv2D(64, (3, 3), activation='relu')(x)
         x = layers.UpSampling2D((2, 2))(x)
-        decoded = layers.Conv2D(3, (3, 3), activation='sigmoid', padding='same')(x)
+        decoded = layers.Conv2D(self.img_shape[-1], (3, 3), activation='tanh', padding='same')(x)
 
         self.model = keras.Model(input_img, decoded)
-        #self.model.compile(optimizer=keras.optimizers.Adam(1e-4), loss = 'mse')
-        self.model.compile(optimizer=keras.optimizers.SGD(1e-7, momentum=1e-8), loss = 'mse')
+
+        #self.model.compile(optimizer=keras.optimizers.Adam(1e-2), loss = 'mse')
+        self.model.compile(optimizer=keras.optimizers.SGD(1e-1, momentum=3e-2), loss = 'mse')
 
 
         return self.model
 
     def prepare_data(self, input):
-        self.input = np.reshape(input.astype('float32'), (1,28, 28, 3))
+        self.input = np.array([input.astype('float32')])/255
 
     def train_predict(self, input):
         self.prepare_data(input)
@@ -47,11 +50,16 @@ class AE_model():
         self.model.fit(self.input, self.input, epochs = 1)
         self.output = self.model.predict(self.input)
 
-        self.output = np.abs(self.output)
-        self.output *= np.round((255.0/self.output.max()))
-        self.output = np.squeeze(self.output, axis = 0)
+        #self.output
+        #self.output = np.abs(self.output)
+        #self.output *= np.round((255.0/self.output.max()))
+        #self.output /= self.output.max()
+        #self.output *= 255
+        #self.output = np.round(self.output)
+        #self.output = np.squeeze(self.output, axis = 0)
+        self.output = self.output[0]
 
-        return self.output
+        return self.input, self.output
 
     def plot_layered_view(self):
         visualkeras.layered_view(self.model, legend = True)
