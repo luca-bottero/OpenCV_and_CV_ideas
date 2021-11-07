@@ -7,7 +7,7 @@ import numpy as np
 
 #%%
 
-class AE_model():
+class AE_model_TF():
     def __init__(self, img_shape = (28,28,3)):
         self.img_shape = img_shape
 
