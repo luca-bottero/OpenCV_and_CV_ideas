@@ -8,10 +8,15 @@ import numpy as np
 #%%
 
 class AE_model_TF():
-    def __init__(self, img_shape = (28,28,3)):
+    def __init__(self, img_shape = (28,28,3), lstm = False, batch_len = 4):
         self.img_shape = img_shape
-
-        self.Create_AE()
+        self.batch_len = batch_len
+        self.lstm      = lstm
+        
+        if self.lstm:
+            self.Create_LSTM_AE()
+        else:
+            self.Create_AE()
         
     def Create_AE(self):
         input_img = keras.Input(shape = self.img_shape)
@@ -41,13 +46,49 @@ class AE_model_TF():
 
         return self.model
 
+    def Create_LSTM_AE(self):
+
+        inp_shape = tuple([self.batch_len]) + self.img_shape
+
+        input_img = keras.Input(shape = inp_shape)
+
+        x = layers.ConvLSTM2D(64, (3, 3), return_sequences = True, activation='relu', padding='same')(input_img)
+        x = layers.MaxPooling3D((2, 2, 2), padding='same')(x)
+        x = layers.ConvLSTM2D(32, (3, 3), return_sequences = True, activation='relu', padding='same')(x)
+        x = layers.MaxPooling3D((2, 2, 2), padding='same')(x)
+        x = layers.ConvLSTM2D(16, (3, 3), return_sequences = True, activation='relu', padding='same')(x)
+        encoded = layers.MaxPooling3D((2, 2, 2), padding='same')(x)
+
+        # at this point the representation is (4, 4, 8) i.e. 128-dimensional
+
+        x = layers.ConvLSTM2D(16, (3, 3), return_sequences = True, activation='relu', padding='same')(encoded)
+        x = layers.UpSampling3D((2, 2, 2))(x)
+        x = layers.ConvLSTM2D(32, (3, 3), return_sequences = True, activation='relu', padding='same')(x)
+        x = layers.UpSampling3D((2, 2, 2))(x)
+        x = layers.ConvLSTM2D(64, (3, 3), return_sequences = True, activation='relu')(x)
+        x = layers.UpSampling3D((2, 2, 2))(x)
+        decoded = layers.ConvLSTM2D(self.img_shape[-1], (3, 3), return_sequences = False, activation='tanh', padding='same')(x)
+
+        self.model = keras.Model(input_img, decoded)
+
+        #self.model.compile(optimizer=keras.optimizers.Adam(1e-2), loss = 'mse')
+        self.model.compile(optimizer=keras.optimizers.SGD(1e-1, momentum=3e-2), loss = 'mse')
+
+        return self.model
+
     def prepare_data(self, input):
         self.input = np.array([input.astype('float32')])/255
 
     def train_predict(self, input):
+
         self.prepare_data(input)
 
-        self.model.fit(self.input, self.input, epochs = 1)
+        if self.lstm:
+            #print(self.input.shape)
+            self.model.fit(self.input, self.input[:,-1,:,:], epochs = 1)
+        else:
+            self.model.fit(self.input, self.input, epochs = 1)
+        
         self.output = self.model.predict(self.input)
 
         #self.output
