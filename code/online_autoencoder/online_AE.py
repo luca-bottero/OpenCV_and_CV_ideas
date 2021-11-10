@@ -38,17 +38,26 @@ while True:
     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     resized = cv2.resize(frame, dsize=IMG_SHAPE[:-1], interpolation=cv2.INTER_LANCZOS4)
 
-    frame_batch.append(resized)
+    if USE_LSTM:
+        frame_batch.append(resized)
 
-    if i >= BATCH_LEN:
-        frame_batch = frame_batch[1:]
+        if i >= BATCH_LEN:
+            frame_batch = frame_batch[1:]
 
-        inp, out = ae_model.train_predict(np.array(frame_batch, dtype=int))
-        #cv2.imshow(canny, np.hstack((inp[0,-1,:,:], out)))
-        upscaled_out = cv2.resize(out, dsize=(320,240), interpolation=cv2.INTER_AREA)
-        cv2.imshow(canny, upscaled_out)
+            inp, out = ae_model.train_predict(np.array(frame_batch, dtype=int))
+            #cv2.imshow(canny, np.hstack((inp[0,-1,:,:], out)))
+            upscaled_out = cv2.resize(out, dsize=(320,240), interpolation=cv2.INTER_AREA)
+            cv2.imshow(canny, upscaled_out)
 
-        #print(inp.shape)
+    else:
+        resized = cv2.resize(frame, dsize=IMG_SHAPE[:-1], interpolation=cv2.INTER_LANCZOS4)
+   
+        inp, out = ae_model.train_predict(np.array(resized, dtype=int))
+
+        upscaled_out = cv2.resize(out[0], dsize=(320,240), interpolation=cv2.INTER_AREA)
+        upscaled_inp = cv2.resize(inp, dsize=(320,240), interpolation=cv2.INTER_AREA)
+
+        cv2.imshow(canny, np.hstack((upscaled_inp, upscaled_out)))
 
     i += 1
     #upscaled_out = cv2.resize(out, dsize=(640,480), interpolation=cv2.INTER_AREA)
