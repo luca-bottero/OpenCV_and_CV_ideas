@@ -44,7 +44,9 @@ while True:
         frame_batch = frame_batch[1:]
 
         inp, out = ae_model.train_predict(np.array(frame_batch, dtype=int))
-        cv2.imshow(canny, np.hstack((inp[0,-1,:,:], out)))
+        #cv2.imshow(canny, np.hstack((inp[0,-1,:,:], out)))
+        upscaled_out = cv2.resize(out, dsize=(320,240), interpolation=cv2.INTER_AREA)
+        cv2.imshow(canny, upscaled_out)
 
         #print(inp.shape)
 
